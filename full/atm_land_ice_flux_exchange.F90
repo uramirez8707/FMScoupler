@@ -72,7 +72,6 @@ module atm_land_ice_flux_exchange_mod
   use      constants_mod, only: rdgas, rvgas, cp_air, stefan, WTMAIR, HLV, HLF, Radius, &
                                 PI, CP_OCEAN, WTMCO2, WTMC, EPSLN, GRAV
   use fms_mod,            only: clock_flag_default, check_nml_error, error_mesg
-  use fms_mod,            only: open_namelist_file, write_version_number
   use data_override_mod,  only: data_override
   use coupler_types_mod,  only: coupler_1d_bc_type, coupler_type_copy, ind_psurf, ind_u10, ind_flux, ind_flux0
   use coupler_types_mod,  only: coupler_type_initialized, coupler_type_spawn

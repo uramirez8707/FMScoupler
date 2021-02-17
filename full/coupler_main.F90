@@ -331,9 +331,7 @@ program coupler_main
   use fms_mod,                 only: fms_init, fms_end, stdout
   use fms_mod,                 only: read_data, write_data
 
-  use fms_io_mod,              only: fms_io_exit
-  use fms_io_mod,              only: restart_file_type
-  use fms_io_mod,              only: save_restart, restore_state
+  use fms_io_mod,              only: fms_io_exit !< Can't get rid of this until fms_io is no longer used at all
 
   use fms2_io_mod,             only: FmsNetcdfDomainFile_t
   use fms2_io_mod,             only: write_restart, read_restart, write_data
@@ -463,10 +461,6 @@ program coupler_main
   integer :: num_atmos_calls, na
   integer :: num_cpld_calls, nc
 
-!------ for intermediate restart
-  type(restart_file_type), dimension(:), pointer :: &
-    mpp_io_Ice_bc_restart => NULL(), mpp_io_Ocn_bc_restart => NULL()
-
   type(FmsNetcdfDomainFile_t), dimension(:), pointer :: Ice_bc_restart => NULL()
   type(FmsNetcdfDomainFile_t), dimension(:), pointer :: Ocn_bc_restart => NULL()
 
@@ -543,7 +537,6 @@ program coupler_main
   logical :: do_debug=.FALSE.       !< If .TRUE. print additional debugging messages.
   integer :: check_stocks = 0 ! -1: never 0: at end of run only n>0: every n coupled steps
   logical :: use_hyper_thread = .false.
-  logical :: use_mpp_bug = .false.
 
   namelist /coupler_nml/ current_date, calendar, force_date_from_namelist,         &
                          months, days, hours, minutes, seconds, dt_cpld, dt_atmos, &
@@ -553,7 +546,7 @@ program coupler_main
                          concurrent, do_concurrent_radiation, use_lag_fluxes,      &
                          check_stocks, restart_interval, do_debug, do_chksum,      &
                          use_hyper_thread, concurrent_ice, slow_ice_with_ocean,    &
-                         do_endpoint_chksum, combined_ice_and_ocean, use_mpp_bug
+                         do_endpoint_chksum, combined_ice_and_ocean
 
   integer :: initClock, mainClock, termClock
 
@@ -1878,75 +1871,42 @@ contains
     if ( Ice%slow_ice_pe ) then
       call mpp_set_current_pelist(Ice%slow_pelist)
 
-      if (use_mpp_bug) then
-      call coupler_type_register_restarts(Ice%ocean_fluxes, mpp_io_Ice_bc_restart, &
-               num_ice_bc_restart, Ice%slow_domain_NH, ocean_restart=.false.)
-
-      ! Restore the fields from the restart files
-        do l = 1, num_ice_bc_restart
-        call restore_state(mpp_io_Ice_bc_restart(l), directory='INPUT', &
-                           nonfatal_missing_files=.true.)
-        enddo
-
-      ! Check whether the restarts were read successfully.
-      call coupler_type_restore_state(Ice%ocean_fluxes, directory='INPUT', &
-                                      test_by_field=.true.)
-      else !< if (use_mpp_bug)
-          call coupler_type_register_restarts(Ice%ocean_fluxes, Ice_bc_restart, &
-               num_ice_bc_restart, Ice%slow_domain_NH, to_read=.true., ocean_restart=.false., directory="INPUT/")
+      call coupler_type_register_restarts(Ice%ocean_fluxes, Ice_bc_restart, &
+             num_ice_bc_restart, Ice%slow_domain_NH, to_read=.true., ocean_restart=.false., directory="INPUT/")
 
           ! Restore the fields from the restart files
-          do l = 1, num_ice_bc_restart
-             if(check_if_open(Ice_bc_restart(l))) call read_restart(Ice_bc_restart(l))
-          enddo
+      do l = 1, num_ice_bc_restart
+         if(check_if_open(Ice_bc_restart(l))) call read_restart(Ice_bc_restart(l))
+      enddo
 
-          ! Check whether the restarts were read successfully.
-          call coupler_type_restore_state(Ice%ocean_fluxes, use_fms2_io=.true., &
-                                      test_by_field=.true.)
+      ! Check whether the restarts were read successfully.
+      call coupler_type_restore_state(Ice%ocean_fluxes, use_fms2_io=.true., &
+              test_by_field=.true.)
 
-          do l = 1, num_ice_bc_restart
-             if(check_if_open(Ice_bc_restart(l))) call close_file(Ice_bc_restart(l))
-          enddo
-
-      endif !< if (use_mpp_bug)
-
-        endif
+      do l = 1, num_ice_bc_restart
+         if(check_if_open(Ice_bc_restart(l))) call close_file(Ice_bc_restart(l))
+      enddo
+    endif !< ( Ice%slow_ice_pe )
 
     if ( Ocean%is_ocean_pe ) then
       call mpp_set_current_pelist(Ocean%pelist)
 
-      if (use_mpp_bug) then
-      call coupler_type_register_restarts(Ocean%fields, mpp_io_Ocn_bc_restart, &
-               num_ocn_bc_restart, Ocean%domain, ocean_restart=.true.)
-
-      ! Restore the fields from the restart files
-        do l = 1, num_ocn_bc_restart
-        call restore_state(mpp_io_Ocn_bc_restart(l), directory='INPUT', &
-                           nonfatal_missing_files=.true.)
-        enddo
-
-      ! Check whether the restarts were read successfully.
-      call coupler_type_restore_state(Ocean%fields, directory='INPUT', &
-                                      test_by_field=.true.)
-      else !< if (use_mpp_bug)
-         call coupler_type_register_restarts(Ocean%fields, Ocn_bc_restart, &
+      call coupler_type_register_restarts(Ocean%fields, Ocn_bc_restart, &
                num_ocn_bc_restart, Ocean%domain, to_read=.true., ocean_restart=.true., directory="INPUT/")
 
-         ! Restore the fields from the restart files
-         do l = 1, num_ocn_bc_restart
-            if(check_if_open(Ocn_bc_restart(l))) call read_restart(Ocn_bc_restart(l))
-         enddo
+      ! Restore the fields from the restart files
+      do l = 1, num_ocn_bc_restart
+         if(check_if_open(Ocn_bc_restart(l))) call read_restart(Ocn_bc_restart(l))
+      enddo
 
-         ! Check whether the restarts were read successfully.
-         call coupler_type_restore_state(Ocean%fields, use_fms2_io=.true., &
-                                      test_by_field=.true.)
+      ! Check whether the restarts were read successfully.
+      call coupler_type_restore_state(Ocean%fields, use_fms2_io=.true., &
+              test_by_field=.true.)
 
-         do l = 1, num_ocn_bc_restart
-            if(check_if_open(Ocn_bc_restart(l))) call close_file(Ocn_bc_restart(l))
-         enddo
-
-      endif !< if (use_mpp_bug)
-        endif
+      do l = 1, num_ocn_bc_restart
+         if(check_if_open(Ocn_bc_restart(l))) call close_file(Ocn_bc_restart(l))
+      enddo
+    endif !< ( Ocean%is_ocean_pe )
 
     call mpp_set_current_pelist()
 
@@ -2114,44 +2074,33 @@ contains
 
     if (Ocean%is_ocean_pe) then
       call mpp_set_current_pelist(Ocean%pelist)
-      if (use_mpp_bug) then
-      do n = 1, num_ocn_bc_restart
-        call save_restart(mpp_io_Ocn_bc_restart(n), time_stamp)
-      enddo
-      else !< if (use_mpp_bug)
-         if (associated(Ocn_bc_restart)) deallocate(Ocn_bc_restart)
-         call coupler_type_register_restarts(Ocean%fields, Ocn_bc_restart, &
-               num_ocn_bc_restart, Ocean%domain, to_read=.false., ocean_restart=.true., directory="RESTART/")
-         do n = 1, num_ocn_bc_restart
-            if (check_if_open(Ocn_bc_restart(n))) then
-               call write_restart(Ocn_bc_restart(n))
-               call add_domain_dimension_data(Ocn_bc_restart(n))
-               call close_file(Ocn_bc_restart(n))
-            endif
-         enddo
+      if (associated(Ocn_bc_restart)) deallocate(Ocn_bc_restart)
 
-      endif !< if (use_mpp_bug)
-    endif
+      call coupler_type_register_restarts(Ocean%fields, Ocn_bc_restart, &
+               num_ocn_bc_restart, Ocean%domain, to_read=.false., ocean_restart=.true., directory="RESTART/")
+      do n = 1, num_ocn_bc_restart
+         if (check_if_open(Ocn_bc_restart(n))) then
+             call write_restart(Ocn_bc_restart(n))
+             call add_domain_dimension_data(Ocn_bc_restart(n))
+             call close_file(Ocn_bc_restart(n))
+          endif
+       enddo
+    endif !< (Ocean%is_ocean_pe)
+
     if (Atm%pe) then
       call mpp_set_current_pelist(Atm%pelist)
-      if (use_mpp_bug) then
-      do n = 1, num_ice_bc_restart
-        call save_restart(mpp_io_Ice_bc_restart(n), time_stamp)
-      enddo
-      else !< if (use_mpp_bug)
-         if (associated(Ice_bc_restart)) deallocate(Ice_bc_restart)
-         call coupler_type_register_restarts(Ice%ocean_fluxes, Ice_bc_restart, &
-               num_ice_bc_restart, Ice%slow_domain_NH, to_read=.false., ocean_restart=.false., directory="RESTART/")
-         do n = 1, num_ice_bc_restart
-            if (check_if_open(Ice_bc_restart(n))) then
-               call write_restart(Ice_bc_restart(n))
-               call add_domain_dimension_data(Ice_bc_restart(n))
-               call close_file(Ice_bc_restart(n))
-            endif
-         enddo
 
-      endif !< if (use_mpp_bug)
-    endif
+      if (associated(Ice_bc_restart)) deallocate(Ice_bc_restart)
+      call coupler_type_register_restarts(Ice%ocean_fluxes, Ice_bc_restart, &
+               num_ice_bc_restart, Ice%slow_domain_NH, to_read=.false., ocean_restart=.false., directory="RESTART/")
+      do n = 1, num_ice_bc_restart
+         if (check_if_open(Ice_bc_restart(n))) then
+             call write_restart(Ice_bc_restart(n))
+             call add_domain_dimension_data(Ice_bc_restart(n))
+             call close_file(Ice_bc_restart(n))
+         endif
+      enddo
+    endif !< (Atm%pe)
 
   end subroutine coupler_restart
 
