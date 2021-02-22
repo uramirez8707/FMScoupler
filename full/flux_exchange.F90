@@ -499,7 +499,7 @@ module flux_exchange_mod
        mpp_clock_id, mpp_clock_begin, mpp_clock_end, mpp_sum, mpp_max, &
        CLOCK_COMPONENT, CLOCK_SUBCOMPONENT, CLOCK_ROUTINE, lowercase, &
        input_nml_file, mpp_get_current_pelist
-  use mpp_domains_mod, only: mpp_create_super_grid, mpp_define_io_domain, EAST, NORTH
+  use mpp_domains_mod, only: mpp_create_super_grid, mpp_define_io_domain
   use mpp_domains_mod, only: mpp_get_compute_domain, mpp_get_compute_domains, &
                              mpp_global_sum, mpp_redistribute, operator(.EQ.)
   use mpp_domains_mod, only: mpp_get_global_domain, mpp_get_data_domain
@@ -996,6 +996,8 @@ contains
        endif
 
        call read_data(atm_mosaic_file_obj, "gridfiles", buffer, corner=1)
+
+       !< Remove the .tile from the filename to get basename
        ppos = scan(trim(buffer),".tile")
        if ( ppos > 0 ) tile_file = buffer(1:ppos+1)//".nc"
 
@@ -1003,9 +1005,6 @@ contains
 
        call mpp_copy_domain(Atm%domain, domain2)
        call mpp_create_super_grid(domain2)
-       !call mpp_set_compute_domain(domain2, 2*isc-1, 2*iec+1, 2*jsc-1, 2*jec+1, 2*(iec-isc)+3, 2*(jec-jsc)+3 )
-       !call mpp_set_data_domain   (domain2, 2*isd-1, 2*ied+1, 2*jsd-1, 2*jed+1, 2*(ied-isd)+3, 2*(jed-jsd)+3 )
-       !call mpp_set_global_domain (domain2, 2*isg-1, 2*ieg+1, 2*jsg-1, 2*jeg+1, 2*(ieg-isg)+3, 2*(jeg-jsg)+3 )
        call mpp_define_io_domain  (domain2, (/1,1/))
 
        call mpp_get_compute_domain(domain2, isc2, iec2, jsc2, jec2)

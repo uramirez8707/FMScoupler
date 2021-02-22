@@ -623,35 +623,7 @@ if (file_exist('INPUT/ice_model.res.nc', domain=Ice%Domain )) then
    call read_data ( fname, 'rough_heat',     Ice%rough_heat,     Ice%Domain )
    call read_data ( fname, 'rough_moist',    Ice%rough_moist,    Ice%Domain)
 else
-   if (file_exist('INPUT/ice_model.res')) then
-      if (mpp_pe() == mpp_root_pe()) call error_mesg ('ice_model_mod', &
-            'Reading native formatted restart file.', NOTE)
-      call set_domain (Ice%Domain)
-      unit = open_restart_file ('INPUT/ice_model.res', 'read')
-      read  (unit) mlon, mlat
-
-    ! restart resolution must be consistent with grid spec
-      if (mlon /= nlon .or. mlat /= nlat) then
-           call error_mesg ('ice_model_init',           &
-            'incorrect resolution on restart', FATAL)
-      endif
-
-      call read_data ( unit, Ice%t_surf        )
-      call read_data ( unit, Ice%thickness     )
-      call read_data ( unit, Ice%albedo        )
-      call read_data ( unit, Ice%albedo_vis_dir)
-      call read_data ( unit, Ice%albedo_nir_dir)
-      call read_data ( unit, Ice%albedo_vis_dif)
-      call read_data ( unit, Ice%albedo_nir_dif)
-      call read_data ( unit, Ice%rough_mom     )
-      call read_data ( unit, Ice%rough_heat    )
-      call read_data ( unit, Ice%rough_moist   )
-      call close_file (unit)
-      call nullify_domain ()
-
   !--- if no restart then no ice ---
-   else
-
       need_ic = .true.
       Ice%t_surf      = TFREEZE   ! + temp_ice_freeze
       Ice%thickness   = 0.0       ! no ice initially
@@ -668,7 +640,6 @@ else
     ! fixed roughness
       call fixed_ocean_roughness ( Ice%mask, Ice%rough_mom, &
                                    Ice%rough_heat, Ice%rough_moist )
-   endif
 endif
 
   ! initialize mask where ice exists

@@ -71,11 +71,13 @@ use flux_exchange_mod,  only: flux_exchange_init,   &
 
 use fms_affinity_mod,   only: fms_affinity_init, fms_affinity_set
 
-use fms_mod,            only: open_namelist_file, file_exist, check_nml_error,  &
+use fms_mod,            only: open_namelist_file, check_nml_error,  &
                               error_mesg, fms_init, fms_end, close_file,        &
                               write_version_number, uppercase, stdout
 
 use fms_io_mod,         only: fms_io_exit
+
+use fms2_io_mod,        only: file_exists
 
 use mpp_mod,            only: mpp_init, mpp_pe, mpp_root_pe, mpp_npes, mpp_get_current_pelist, &
                               stdlog, mpp_error, NOTE, FATAL, WARNING
@@ -292,7 +294,7 @@ contains
 !----- read namelist -------
 !----- for backwards compatibilty read from file coupler.nml -----
 
-    if (file_exist('input.nml')) then
+    if (file_exists('input.nml')) then
       unit = open_namelist_file ()
     else
       call error_mesg ('program coupler',  &
@@ -317,7 +319,7 @@ contains
 
 !----- read restart file -----
 
-    if (file_exist('INPUT/coupler.res')) then
+    if (file_exists('INPUT/coupler.res')) then
        call mpp_open( unit, 'INPUT/coupler.res', action=MPP_RDONLY )
        read (unit,*,err=999) calendar_type
        read (unit,*) date_init
@@ -493,7 +495,7 @@ contains
     call    ice_model_init (Ice,  Time_init, Time_atmos, Time_step_atmos, Time_step_ocean, &
                             glon_bnd, glat_bnd, atmos_domain=Atm%Domain)
 
-    if (file_exist('data_table')) then
+    if (file_exists('data_table')) then
       inquire(file='data_table', size=dt_size)
       if (dt_size > 0.) then
         call data_override_init(Atm_domain_in = Atm%domain)
