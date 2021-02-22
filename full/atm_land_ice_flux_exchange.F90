@@ -30,7 +30,6 @@ module atm_land_ice_flux_exchange_mod
   use   mpp_domains_mod,  only: mpp_get_global_domain, mpp_get_data_domain
   use   mpp_domains_mod,  only: mpp_set_global_domain, mpp_set_data_domain, mpp_set_compute_domain
   use   mpp_domains_mod,  only: mpp_deallocate_domain, mpp_copy_domain, domain2d, mpp_compute_extent
-  use   mpp_io_mod,       only: mpp_close, mpp_open, MPP_MULTI, MPP_SINGLE, MPP_OVERWR
   use   atmos_model_mod,  only: atmos_data_type, land_ice_atmos_boundary_type
   use   ocean_model_mod,  only: ocean_public_type, ice_ocean_boundary_type
   use   ocean_model_mod,  only: ocean_state_type

@@ -326,17 +326,16 @@ program coupler_main
   use time_manager_mod,        only: date_to_string, increment_date
   use time_manager_mod,        only: operator(>=), operator(<=), operator(==)
 
-  use fms_mod,                 only: open_namelist_file, field_exist, file_exist, check_nml_error
+  use fms_mod,                 only: open_namelist_file, check_nml_error
   use fms_mod,                 only: uppercase, error_mesg, write_version_number
   use fms_mod,                 only: fms_init, fms_end, stdout
-  use fms_mod,                 only: read_data, write_data
 
   use fms_io_mod,              only: fms_io_exit !< Can't get rid of this until fms_io is no longer used at all
 
   use fms2_io_mod,             only: FmsNetcdfDomainFile_t
   use fms2_io_mod,             only: write_restart, read_restart, write_data
   use fms2_io_mod,             only: get_global_io_domain_indices
-  use fms2_io_mod,             only: close_file, check_if_open
+  use fms2_io_mod,             only: close_file, check_if_open, file_exists
 
   use diag_manager_mod,        only: diag_manager_init, diag_manager_end, diag_grid_end
   use diag_manager_mod,        only: DIAG_OCEAN, DIAG_OTHER, DIAG_ALL, get_base_date
@@ -1252,7 +1251,7 @@ contains
     endif
 
 !----- read date and calendar type from restart file -----
-    if (file_exist('INPUT/coupler.res')) then
+    if (file_exists('INPUT/coupler.res')) then
 !Balaji: currently written in binary, needs form=MPP_NATIVE
       call mpp_open( unit, 'INPUT/coupler.res', action=MPP_RDONLY )
       read( unit,*,err=999 )calendar_type
@@ -1602,7 +1601,7 @@ contains
     Run_length = Time_end - Time
 
 !--- get the time that last intermediate restart file was written out.
-    if (file_exist('INPUT/coupler.intermediate.res')) then
+    if (file_exists('INPUT/coupler.intermediate.res')) then
        call mpp_open(unit,'INPUT/coupler.intermediate.res',action=MPP_RDONLY)
        read(unit,*) date_restart
        call mpp_close(unit)
