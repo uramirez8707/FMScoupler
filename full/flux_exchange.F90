@@ -561,7 +561,7 @@ module flux_exchange_mod
 
   logical :: do_init = .true.
 
-  real, parameter :: bound_tol = 1e-7
+  real, parameter :: bound_tol = 1e-2
 
   real, parameter :: d622 = rdgas/rvgas
   real, parameter :: d378 = 1.0-d622
