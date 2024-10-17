@@ -335,6 +335,7 @@ program coupler_main
   use omp_lib
   use FMS
   use full_coupler_mod
+  USE ITTNOTIFY
 
   use iso_fortran_env
   implicit none
@@ -383,6 +384,7 @@ program coupler_main
   INTEGER :: i, status, arg_count
   CHARACTER(len=256) :: executable_name, arg, fredb_id
 
+  call itt_pause()
 #ifdef FREDB_ID
 #define xstr(s) str(s)
 #define str(s) #s
@@ -441,7 +443,7 @@ program coupler_main
 
   if (check_stocks >= 0) call coupler_flux_init_finish_stocks(Time, Atm, Land, Ice, Ocean_state, &
                                                               coupler_clocks, init_stocks=.True.)
-
+call itt_resume()
   !> ocean/slow-ice integration loop
   coupled_timestep_loop : do nc = 1, num_cpld_calls
 
@@ -704,6 +706,7 @@ program coupler_main
 
   enddo coupled_timestep_loop
 
+call itt_pause()
   !-----------------------------------------------------------------------
   if( check_stocks >=0 ) call coupler_flux_init_finish_stocks(Time, Atm, Land, Ice, Ocean_state, &
                                                               coupler_clocks, finish_stocks=.True.)
